@@ -45,6 +45,10 @@ private:
   size_t _recv_idx;
   bool _recv_escaped;
   bool _recv_dropped;
+
+    uint8_t _read_buffer[256]; 
+    size_t _read_length = 0;
+    size_t _read_idx = 0;
 };
 
 

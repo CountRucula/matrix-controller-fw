@@ -1,5 +1,10 @@
 #include <Arduino.h>
 #include <FastLED.h>
+#include <tusb.h>
+
+#include <FreeRTOS.h>
+#include <task.h>
+#include <semphr.h>
 
 #include "MatrixLink.hpp"
 #include "MatrixCom.hpp"
@@ -11,7 +16,7 @@ CRGB leds[N_LEDS];
 
 matrix::MatrixLink matrixlink(Serial);
 matrix::MatrixCOM matrix_com(matrixlink);
-uint8_t buffer[1024];
+uint8_t buffer[10*1024];
 
 matrix::FrameType_t frameType;
 uint8_t *payload;

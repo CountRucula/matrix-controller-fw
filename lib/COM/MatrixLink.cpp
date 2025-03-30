@@ -1,5 +1,6 @@
 #include "MatrixLink.hpp"
 #include "ErriezCRC32.h"
+#include <tusb.h>
 
 #define HEADER 0x7E
 #define FOOTER 0x7E
@@ -48,16 +49,24 @@ namespace matrix
 
     size_t MatrixLink::HandleIncoming()
     {
+        int available = 0;
 
-        uint8_t byte;
+        while(_read_length || (available = _serial.available())) {
 
-        while (_serial.available())
-        {
+            // no bytes left in buffer
+            if(_read_length == 0) {
+                _read_length = MIN(sizeof(_read_buffer), available);
+                _read_length = tud_cdc_read(_read_buffer, _read_length);
+                _read_idx = 0;
+            }
+
+            // input byte
+            uint8_t& byte = _read_buffer[_read_idx++];
+            _read_length--;
+
             switch (_state)
             {
             case STATE_IDLE:
-                byte = _serial.read();
-
                 if (byte == HEADER) {
                     _state = STATE_RECV;
                     _recv_idx = 0;
@@ -67,11 +76,8 @@ namespace matrix
                 break;
 
             case STATE_RECV:
-                byte = _serial.read();
-
                 if(HandleByte(byte) == STATE_IDLE) {
                     _state = STATE_IDLE;
-
 
                     if(!_recv_dropped && CheckCRC32()) {
                         return _recv_idx;
@@ -150,7 +156,6 @@ namespace matrix
     void MatrixLink::Drop()
     {
         _recv_dropped = true;
-        //_serial.printf("Frame Dropped!\n");
     }
 
     bool MatrixLink::CheckCRC32() 
