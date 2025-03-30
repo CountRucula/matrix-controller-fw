@@ -12,7 +12,7 @@ namespace matrix{
         Command cmd;
         uint16_t data_length;
         uint8_t *led_data;
-        
+
         switch (type)
         {
         case FrameType_t::FRAME_COMMAND:
@@ -22,8 +22,9 @@ namespace matrix{
             break;
 
         case FrameType_t::FRAME_DATA:
-            data_length = *reinterpret_cast<uint16_t*>(payload);
-            led_data = payload + 2;
+
+            memcpy(&data_length, payload, sizeof(data_length)); // copy instead of casting => avoid unaligned memory access!
+            led_data = payload + sizeof(data_length);
 
             _signals.LedData.emit(led_data, data_length);
             break;
@@ -43,8 +44,8 @@ namespace matrix{
         case Command::SET_BAUDRATE:
             if (length < 4)
                 return;
-
-            baudrate = *(uint32_t *)args;
+        
+            memcpy(&baudrate, args, sizeof(4));
             _signals.SetBaudrate.emit(baudrate);
             break;
 
@@ -58,6 +59,9 @@ namespace matrix{
 
         case Command::CLR_FRAME:
             _signals.ClrFrame.emit();
+            break;
+
+        default:
             break;
         }
     }

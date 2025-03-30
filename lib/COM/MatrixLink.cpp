@@ -160,7 +160,9 @@ namespace matrix
 
     bool MatrixLink::CheckCRC32() 
     {
-        uint32_t received_crc = *((uint32_t*)&_recv_buffer[_recv_idx-4]);
+        uint32_t received_crc;
+        memcpy(&received_crc, &_recv_buffer[_recv_idx-sizeof(received_crc)], sizeof(received_crc));
+        
         uint32_t calculated_crc = crc32Buffer(_recv_buffer, _recv_idx-4);
 
         return received_crc == calculated_crc;
