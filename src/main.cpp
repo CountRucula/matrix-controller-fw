@@ -22,7 +22,10 @@ matrix::FrameType_t frameType;
 uint8_t *payload;
 size_t payload_length;
 
+static TaskHandle_t tsk_blinky;
+
 void bind_com_signals(void);
+static void blinky_entry(void *param);
 
 void setup()
 {
@@ -35,6 +38,9 @@ void setup()
 
     // add calbacks
     bind_com_signals();
+
+    // add tasks
+    xTaskCreate(blinky_entry, "Blinky", 256, NULL, 0, &tsk_blinky);
 
     // set buffer
     matrixlink.StartReceiving(buffer, sizeof(buffer));
@@ -53,9 +59,20 @@ void loop()
 
         matrix_com.HandleFrame(frameType, payload, payload_length);
     }
+}
 
-    // sleep for 10ms
-    delay(10);
+static void blinky_entry(void *param)
+{
+    gpio_init(LED_BUILTIN);
+    gpio_set_dir(LED_BUILTIN, true);
+
+    while(1) {
+        gpio_put(LED_BUILTIN, true);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+
+        gpio_put(LED_BUILTIN, false);
+        vTaskDelay(900 / portTICK_PERIOD_MS);
+    }
 }
 
 void bind_com_signals(void)
