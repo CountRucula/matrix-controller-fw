@@ -1,68 +1,69 @@
+// pico sdk
+#include <hardware/adc.h>
+#include <hardware/gpio.h>
+
+// arduino libraries
 #include <Arduino.h>
 #include <FastLED.h>
 #include <tusb.h>
 
+// FreeRTOS
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
 
-#include "MatrixLink.hpp"
-#include "MatrixCom.hpp"
+// My Stuff
+#include "Controller.h"
+#include "Poti.h"
+#include "Button.h"
+#include "Joystick.h"
 
-#define N_LEDS (50*20)
-#define LED_PIN 15
+// define hardware
+hardware::Poti poti_left(26, 0);
+hardware::Poti poti_right(27, 1);
+hardware::Button btn(10, hardware::InputLogic::HighActive);
+hardware::Joystick joystick({
+    .left   = hardware::Button(11, hardware::InputLogic::HighActive),
+    .right  = hardware::Button(12, hardware::InputLogic::HighActive),
+    .top    = hardware::Button(13, hardware::InputLogic::HighActive),
+    .bottom = hardware::Button(14, hardware::InputLogic::HighActive),
+});
 
-CRGB leds[N_LEDS];
-
-matrix::MatrixLink matrixlink(Serial);
-matrix::MatrixCOM matrix_com(matrixlink);
+// serial communication
 uint8_t buffer[10*1024];
+com::SerialLink serial_link(Serial);
+Controller controller(serial_link, poti_left, poti_right, btn, joystick);
 
-matrix::FrameType_t frameType;
-uint8_t *payload;
-size_t payload_length;
-
+// tasks
 static TaskHandle_t tsk_blinky;
-static TaskHandle_t tsk_led;
+static TaskHandle_t tsk_input;
 
-void bind_com_signals(void);
 static void blinky_entry(void *param);
-static void led_entry(void *param);
-
-SemaphoreHandle_t led_mutex;
+static void input_entry(void *param);
 
 void setup()
 {
+    // init hardware
+    Serial1.begin(115200);
+
+    adc_init();
+
     gpio_init(13);
     gpio_set_dir(13, true);
 
-    // add calbacks
-    bind_com_signals();
-
-    // init mutexes
-    led_mutex = xSemaphoreCreateMutex();
-
     // add tasks
     xTaskCreate(blinky_entry, "Blinky", 256, NULL, 0, &tsk_blinky);
-    xTaskCreate(led_entry, "FastLED", 1024, NULL, 0, &tsk_led);
+    xTaskCreate(input_entry, "Input", 256, NULL, 0, &tsk_input);
+
+    controller.SetFwVersion(VERSION_MAJOR, VERSION_MINOR);
 
     // set buffer
-    matrixlink.StartReceiving(buffer, sizeof(buffer));
+    serial_link.StartReceiving(buffer, sizeof(buffer));
 }
 
 void loop()
 {
-    // handle incoming data
-    size_t len = matrixlink.HandleIncoming();
-
-    // len > 0 -> frame successful received
-    if (len > 0)
-    {
-        frameType = matrixlink.GetType();
-        payload = matrixlink.GetPayload(payload_length);
-
-        matrix_com.HandleFrame(frameType, payload, payload_length);
-    }
+    size_t len = serial_link.HandleIncoming();
 }
 
 static void blinky_entry(void *param)
@@ -72,74 +73,26 @@ static void blinky_entry(void *param)
 
     while(1) {
         gpio_put(LED_BUILTIN, true);
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(100));
 
         gpio_put(LED_BUILTIN, false);
-        vTaskDelay(900 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(900));
     }
 }
 
-static void led_entry(void *param)
+static void input_entry(void *param)
 {
-    TickType_t xLastWakeTime;
-    uint gpio = 14;
+    // clear events
+    btn.Update();
+    btn.GetEvent();
 
-    // init gpio
-    gpio_init(gpio);
-    gpio_set_dir(gpio, true);
+    joystick.Update();
+    joystick.GetEvent();
 
-    // add leds
-    FastLED.addLeds<WS2812B, LED_PIN, EOrder::GRB>(leds, N_LEDS);
-    FastLED.show();
-
-    xLastWakeTime = xTaskGetTickCount();
-    while(1) {
-        xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(33));
-
-        gpio_put(gpio, true);
-
-        xSemaphoreTake(led_mutex, portMAX_DELAY);
-        FastLED.show();
-        xSemaphoreGive(led_mutex);
-
-        gpio_put(gpio, false);
-
+    while (1)
+    {
+        btn.Update();
+        joystick.Update();
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
-}
-
-void bind_com_signals(void)
-{
-    matrix_com.Signals().SetBaudrate.connect([](uint32_t baudrate) {
-        Serial.updateBaudRate(baudrate);
-    });
-
-    matrix_com.Signals().GetFwVersion.connect([]() {
-        matrix_com.RespondGetFwVersion(1, 5);
-    });
-
-    matrix_com.Signals().GetSize.connect([]() {
-        matrix_com.RespondGetSize(10, 1);
-    });
-
-    matrix_com.Signals().ClrFrame.connect([]() {
-        for(int i = 0; i < N_LEDS; i++) {
-            leds[i] = 0;
-        }
-
-        FastLED.show();
-    });
-
-    matrix_com.Signals().LedData.connect([](uint8_t *values, size_t n_leds){
-        n_leds = MIN(n_leds, N_LEDS);
-
-        gpio_put(13, true);
-        xSemaphoreTake(led_mutex, portMAX_DELAY);
-        for(size_t i = 0; i < n_leds; i++) {
-            leds[i].r = values[3*i + 0];
-            leds[i].g = values[3*i + 1];
-            leds[i].b = values[3*i + 2];
-        }
-        xSemaphoreGive(led_mutex);
-        gpio_put(13, false);
-    });
 }
