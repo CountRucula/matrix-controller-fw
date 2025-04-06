@@ -24,10 +24,10 @@ hardware::Poti poti_right(27, 1);
 hardware::Button btn0(14, hardware::InputLogic::HighActive);
 hardware::Button btn1(15, hardware::InputLogic::HighActive);
 hardware::Joystick joystick({
-    .left   = hardware::Button(11, hardware::InputLogic::HighActive),
-    .right  = hardware::Button(12, hardware::InputLogic::HighActive),
-    .top    = hardware::Button(13, hardware::InputLogic::HighActive),
-    .bottom = hardware::Button(14, hardware::InputLogic::HighActive),
+    .left   = hardware::Button(13, hardware::InputLogic::HighActive),
+    .right  = hardware::Button(11, hardware::InputLogic::HighActive),
+    .top    = hardware::Button(10, hardware::InputLogic::HighActive),
+    .bottom = hardware::Button(12, hardware::InputLogic::HighActive),
 });
 
 // serial communication
