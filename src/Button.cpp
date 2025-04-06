@@ -10,6 +10,11 @@ namespace hardware
         , _logic{logic}
     {
         gpio_init(_gpio_pin);
+
+        if(_logic == InputLogic::HighActive)
+            gpio_pull_down(_gpio_pin);
+        else
+            gpio_pull_up(_gpio_pin);
     }
 
     void Button::Update(void)
