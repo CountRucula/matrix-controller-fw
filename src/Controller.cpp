@@ -24,6 +24,8 @@ void Controller::UpdateInput(void)
 
     _btn.Update();
     _joystick.Update();
+    _poti_left.Update();
+    _poti_right.Update();
 
     event = _btn.GetEvent();
     if(event.id != EventId::None) {
@@ -36,6 +38,18 @@ void Controller::UpdateInput(void)
         event.data.joystick.id = 0;
         AddEvent(event);
 }
+
+    event = _poti_left.GetEvent();
+    if(event.id != EventId::None) {
+        event.data.poti.id = POTI_LEFT;
+        AddEvent(event);
+    }
+
+    event = _poti_right.GetEvent();
+    if(event.id != EventId::None) {
+        event.data.poti.id = POTI_RIGTH;
+        AddEvent(event);
+    }
 }
 
 void Controller::HandleCmd(uint8_t cmd, uint8_t *args, const size_t length)
@@ -188,6 +202,18 @@ void Controller::ReplyEvents(event_t* events, uint16_t nbr_events)
         case EventId::JOYSTICK_CHANGED:
             *(ptr++) = events[i].data.joystick.id;
             *(ptr++) = events[i].data.joystick.state;
+            break;
+
+        case EventId::POTI_CHANGED:
+            *(ptr++) = events[i].data.poti.id;
+
+            *(ptr++) = reinterpret_cast<uint8_t*>(&events[i].data.poti.val)[0];
+            *(ptr++) = reinterpret_cast<uint8_t*>(&events[i].data.poti.val)[1];
+            *(ptr++) = reinterpret_cast<uint8_t*>(&events[i].data.poti.val)[2];
+            *(ptr++) = reinterpret_cast<uint8_t*>(&events[i].data.poti.val)[3];
+
+            *(ptr++) = reinterpret_cast<uint8_t*>(&events[i].data.poti.raw)[0];
+            *(ptr++) = reinterpret_cast<uint8_t*>(&events[i].data.poti.raw)[1];
             break;
         }
     }

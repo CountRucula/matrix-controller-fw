@@ -15,14 +15,44 @@ namespace hardware
 
     uint16_t Poti::Raw(void)
     {
-        adc_select_input(_adc_channel);
-        return adc_read();
+        return _raw;
     }
 
     float Poti::Read(void)
     {
-        uint16_t raw = Raw();
-        return Saturate((raw - _min) * _gain);
+        return _val;
+    }
+    
+    void Poti::Update(void)
+    {
+        adc_select_input(_adc_channel);
+
+        uint16_t raw = adc_read();
+
+        if(abs(raw - _raw) > 5)
+            _event_id = EventId::POTI_CHANGED;
+
+        _raw = raw;
+        _val = Saturate((_raw - _min) * _gain);
+
+    }
+    
+    event_t Poti::GetEvent(void)
+    {
+        event_t event = {
+            .id = _event_id,
+            .data = {
+                .poti = {
+                    .id = 0,
+                    .val = _val,
+                    .raw = _raw
+                }
+            }
+        };
+
+        _event_id = EventId::None;
+
+        return event;
     }
 
     void Poti::Calibrate(uint16_t min, uint16_t max)

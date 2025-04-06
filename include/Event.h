@@ -14,7 +14,7 @@ enum class EventId : uint8_t
 
 struct ButtonData   { uint8_t id; };
 struct JoystickData { uint8_t id; uint8_t state; };
-struct PotiData     { uint8_t id; float val; };
+struct PotiData     { uint8_t id; float val; uint16_t raw; };
 
 typedef struct
 {
