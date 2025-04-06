@@ -25,15 +25,11 @@ namespace hardware
         return Saturate((raw - _min) * _gain);
     }
 
-    void Poti::CalibrateMax(void)
+    void Poti::Calibrate(uint16_t min, uint16_t max)
     {
-        _max = Raw();
-        CalcGain();
-    }
+        _min = min;
+        _max = max;
 
-    void Poti::CalibrateMin(void)
-    {
-        _min = Raw();
         CalcGain();
     }
 

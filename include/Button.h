@@ -1,14 +1,9 @@
 #pragma once
 
+#include "Event.h"
+
 namespace hardware
 {
-    enum class ButtonEvent : uint8_t
-    {
-        None,
-        Press,
-        Release,
-    };
-
     enum class ButtonState : uint8_t
     {
         Pressed = 1,
@@ -30,11 +25,11 @@ namespace hardware
         void Update(void);
 
         ButtonState GetState(void);
-        ButtonEvent GetEvent(void);
+        EventId GetEvent(void);
 
     private:
         ButtonState _state;
-        ButtonEvent _event;
+        EventId _event;
         InputLogic _logic;
 
         int _gpio_pin;

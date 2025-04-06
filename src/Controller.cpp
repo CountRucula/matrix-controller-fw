@@ -4,9 +4,6 @@
 #include <hardware/adc.h>
 #include <hardware/gpio.h>
 
-#define POTI_CALIBRATE_MAX 0
-#define POTI_CALIBRATE_MIN 1
-
 #define POTI_LEFT 0
 #define POTI_RIGTH 1
 
@@ -21,17 +18,34 @@ Controller::Controller(com::SerialLink &seriallink, hardware::Poti& poti_left, h
     SetDeviceType(controller_device_type);
 }
 
+void Controller::UpdateInput(void)
+{
+    EventId event;
+
+    _btn.Update();
+    _joystick.Update();
+
+    event = _btn.GetEvent();
+    if(event != EventId::None)
+        AddEvent(event);
+
+    event = _joystick.GetEvent();
+    if(event != EventId::None)
+        AddEvent(event);
+}
+
 void Controller::HandleCmd(uint8_t cmd, uint8_t *args, const size_t length)
 {
 
     switch (static_cast<ControllerCommands>(cmd))
     {
-    case ControllerCommands::GET_BTN_STATE:         CmdGetBtnState(args, length);       break;
-    case ControllerCommands::GET_BTN_EVENT:         CmdGetBtnEvent(args, length);       break;
-    case ControllerCommands::GET_JOYSTICK_STATE:    CmdGetJoystickState(args, length);  break;
-    case ControllerCommands::GET_JOYSTICK_EVENT:    CmdGetJoystickEvent(args, length);  break;
     case ControllerCommands::GET_POTI_POS:          CmdGetPotiPos(args, length);        break;
-    case ControllerCommands::CALIBRATE_POTI:        CmdCalibratePoti(args, length);     break;
+    case ControllerCommands::GET_POTI_RAW:          CmdGetPotiRaw(args, length);        break;
+    case ControllerCommands::GET_BTN_STATE:         CmdGetBtnState(args, length);       break;
+    case ControllerCommands::GET_JOYSTICK_STATE:    CmdGetJoystickState(args, length);  break;
+
+    case ControllerCommands::GET_EVENTS:            CmdGetEvents(args, length);         break;
+    case ControllerCommands::SET_POTI_CALIB:        CmdCalibratePoti(args, length);     break;
 
     default:
         com::Device::HandleCmd(cmd, args, length); 
@@ -59,14 +73,13 @@ void Controller::CmdGetPotiPos(uint8_t* args, const size_t length)
     ReplyPotiPos(poti_nr, poti->Read());
 }
 
-void Controller::CmdCalibratePoti(uint8_t* args, const size_t length)
+void Controller::CmdGetPotiRaw(uint8_t* args, const size_t length)
 {
     uint8_t poti_nr;
     hardware::Poti* poti;
-    uint8_t cal_type;
 
     // check args length
-    if(length < (sizeof(poti_nr) + sizeof(uint8_t)))
+    if(length < sizeof(poti_nr))
         return; 
 
     // select poti
@@ -76,10 +89,30 @@ void Controller::CmdCalibratePoti(uint8_t* args, const size_t length)
     else if(poti_nr == POTI_RIGTH)  poti = &_poti_right;
     else                            return;
 
-    cal_type = args[1];
+    // read & reply
+    ReplyPotiRaw(poti_nr, poti->Raw());
+}
 
-    if(cal_type == POTI_CALIBRATE_MIN)      poti->CalibrateMin();
-    else if(cal_type == POTI_CALIBRATE_MAX) poti->CalibrateMax();
+void Controller::CmdCalibratePoti(uint8_t* args, const size_t length)
+{
+    uint8_t poti_nr;
+    hardware::Poti* poti;
+    uint16_t min, max;
+
+    // check args length
+    if(length < (sizeof(poti_nr) + sizeof(min) + sizeof(max)))
+        return; 
+
+    // parse args
+    poti_nr = args[0];
+    memcpy(&min, args+1, sizeof(min));
+    memcpy(&max, args+3, sizeof(max));
+
+    if(poti_nr == POTI_LEFT)        poti = &_poti_left;
+    else if(poti_nr == POTI_RIGTH)  poti = &_poti_right;
+    else                            return;
+
+    poti->Calibrate(min, max);
 }
 
 void Controller::CmdGetBtnState(uint8_t* args, const size_t length)
@@ -87,19 +120,15 @@ void Controller::CmdGetBtnState(uint8_t* args, const size_t length)
     ReplyBtnState(_btn.GetState());
 }
 
-void Controller::CmdGetBtnEvent(uint8_t* args, const size_t length)
-{
-    ReplyBtnEvent(_btn.GetEvent());
-}
-    
 void Controller::CmdGetJoystickState(uint8_t* args, const size_t length)
 {
     ReplyJoystickState(_joystick.GetState());
 }
 
-void Controller::CmdGetJoystickEvent(uint8_t* args, const size_t length)
+void Controller::CmdGetEvents(uint8_t* args, const size_t length)
 {
-    ReplyJoystickEvent(_joystick.GetEvent());
+    ReplyEvents(_events, _events_len);
+    ClearEvents();
 }
 
 void Controller::ReplyPotiPos(uint8_t poti, float pos)
@@ -115,15 +144,15 @@ void Controller::ReplyPotiPos(uint8_t poti, float pos)
     _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
 }
 
-void Controller::ReplyBtnState(hardware::ButtonState state)
+void Controller::ReplyPotiRaw(uint8_t poti, uint16_t raw)
 {
-    uint8_t payload[] = {static_cast<uint8_t>(ControllerCommands::GET_BTN_STATE), static_cast<uint8_t>(state)};
+    uint8_t payload[] = {static_cast<uint8_t>(ControllerCommands::GET_POTI_RAW), poti, reinterpret_cast<uint8_t*>(&raw)[0], reinterpret_cast<uint8_t*>(&raw)[1]};
     _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
 }
 
-void Controller::ReplyBtnEvent(hardware::ButtonEvent event)
+void Controller::ReplyBtnState(hardware::ButtonState state)
 {
-    uint8_t payload[] = {static_cast<uint8_t>(ControllerCommands::GET_BTN_EVENT), static_cast<uint8_t>(event)};
+    uint8_t payload[] = {static_cast<uint8_t>(ControllerCommands::GET_BTN_STATE), static_cast<uint8_t>(state)};
     _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
 }
 
@@ -133,8 +162,27 @@ void Controller::ReplyJoystickState(hardware::JoystickState state)
     _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
 }
 
-void Controller::ReplyJoystickEvent(hardware::JoystickEvent event)
+void Controller::ReplyEvents(EventId* events, uint16_t nbr_events)
 {
-    uint8_t payload[] = {static_cast<uint8_t>(ControllerCommands::GET_JOYSTICK_EVENT), static_cast<uint8_t>(event)};
-    _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
+    size_t length = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(*events) * nbr_events;
+    uint8_t payload[sizeof(uint8_t) + sizeof(uint16_t) + sizeof(_events)] = {
+        static_cast<uint8_t>(ControllerCommands::GET_EVENTS), 
+        reinterpret_cast<uint8_t *>(&nbr_events)[0], 
+        reinterpret_cast<uint8_t *>(&nbr_events)[1]
+    };
+
+    memcpy(payload+sizeof(uint8_t)+sizeof(uint16_t), events, nbr_events);
+
+    _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, length);
+}
+
+void Controller::AddEvent(EventId event)
+{
+    if(_events_len < ARRAY_LEN(_events))
+        _events[_events_len++] = event;
+}
+
+void Controller::ClearEvents(void)
+{
+    _events_len = 0;
 }

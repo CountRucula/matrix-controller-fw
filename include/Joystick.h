@@ -1,21 +1,11 @@
 #pragma once
 
 #include <stdint.h>
-#include "Util.h"
+#include "Event.h"
 #include "Button.h"
 
 namespace hardware
 {
-    enum class JoystickEvent : uint8_t
-    {
-        None,
-        ToMiddle,
-        ToLeft,
-        ToRight,
-        ToTop,
-        ToBottom 
-    };
-
     enum class JoystickState : uint8_t
     {
         Middle = 1,
@@ -39,11 +29,11 @@ namespace hardware
         void Update(void);
 
         JoystickState GetState(void);
-        JoystickEvent GetEvent(void);
+        EventId GetEvent(void);
 
     private:
         JoystickState _state;
-        JoystickEvent _event;
+        EventId _event;
 
         JoystickBtns_t _btns;
     };

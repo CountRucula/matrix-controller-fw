@@ -91,8 +91,7 @@ static void input_entry(void *param)
 
     while (1)
     {
-        btn.Update();
-        joystick.Update();
+        controller.UpdateInput();
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }

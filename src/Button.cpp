@@ -1,6 +1,7 @@
 #include <hardware/gpio.h>
 
 #include "Button.h"
+#include "Event.h"
 
 namespace hardware
 {
@@ -21,7 +22,7 @@ namespace hardware
             new_state = gpio_get(_gpio_pin) ? ButtonState::Released : ButtonState::Pressed;
 
         if(new_state != _state) {
-            _event = (new_state == ButtonState::Pressed) ? ButtonEvent::Press : ButtonEvent::Release;
+            _event = (new_state == ButtonState::Pressed) ? EventId::BTN_PRESSED : EventId::BTN_RELEASED;
         }
 
         _state = new_state;
@@ -32,11 +33,11 @@ namespace hardware
         return _state;
     }
 
-    ButtonEvent Button::GetEvent(void)
+    EventId Button::GetEvent(void)
     {
-        ButtonEvent event = _event;
+        EventId event = _event;
 
-        _event = ButtonEvent::None;
+        _event = EventId::None;
 
         return event;
     }

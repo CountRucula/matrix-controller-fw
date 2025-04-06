@@ -27,10 +27,10 @@ namespace hardware
             new_state = JoystickState::Right;
 
         else if(_btns.top.GetState() == ButtonState::Pressed)
-            new_state = JoystickState::Right;
+            new_state = JoystickState::Top;
 
         else if(_btns.bottom.GetState() == ButtonState::Pressed)
-            new_state = JoystickState::Right;
+            new_state = JoystickState::Bottom;
 
         else
             new_state = JoystickState::Middle;
@@ -38,11 +38,11 @@ namespace hardware
         if(new_state != _state) {
             switch (new_state)
             {
-            case JoystickState::Middle:     _event = JoystickEvent::ToMiddle;   break;
-            case JoystickState::Left:       _event = JoystickEvent::ToLeft;     break;
-            case JoystickState::Right:      _event = JoystickEvent::ToRight;    break;
-            case JoystickState::Top:        _event = JoystickEvent::ToTop;      break;
-            case JoystickState::Bottom:     _event = JoystickEvent::ToBottom;   break;
+            case JoystickState::Middle:     _event = EventId::JOYSTICK_TO_MIDDLE;   break;
+            case JoystickState::Left:       _event = EventId::JOYSTICK_TO_LEFT;     break;
+            case JoystickState::Right:      _event = EventId::JOYSTICK_TO_RIGHT;    break;
+            case JoystickState::Top:        _event = EventId::JOYSTICK_TO_TOP;      break;
+            case JoystickState::Bottom:     _event = EventId::JOYSTICK_TO_BOTTOM;   break;
             }
         }
 
@@ -54,11 +54,11 @@ namespace hardware
         return _state;
     }
 
-    JoystickEvent Joystick::GetEvent(void)
+    EventId Joystick::GetEvent(void)
     {
-        JoystickEvent event = _event;
+        EventId event = _event;
 
-        _event = JoystickEvent::None;
+        _event = EventId::None;
 
         return event;
     }

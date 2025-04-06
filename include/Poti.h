@@ -13,8 +13,7 @@ namespace hardware
         uint16_t Raw(void);
         float Read(void);
 
-        void CalibrateMax(void);
-        void CalibrateMin(void);
+        void Calibrate(uint16_t min, uint16_t max);
 
     private:
         void CalcGain(void);
