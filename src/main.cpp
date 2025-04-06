@@ -29,6 +29,8 @@ hardware::Joystick joystick({
     .top    = hardware::Button(10, hardware::InputLogic::HighActive),
     .bottom = hardware::Button(12, hardware::InputLogic::HighActive),
 });
+const int btn0_led_pin = 16;
+const int btn1_led_pin = 17;
 
 // serial communication
 uint8_t buffer[10*1024];
@@ -49,8 +51,8 @@ void setup()
 
     adc_init();
 
-    gpio_init(13);
-    gpio_set_dir(13, true);
+    gpio_init(btn0_led_pin);
+    gpio_init(btn1_led_pin);
 
     // add tasks
     xTaskCreate(blinky_entry, "Blinky", 256, NULL, 0, &tsk_blinky);
@@ -90,6 +92,10 @@ static void input_entry(void *param)
     while (1)
     {
         controller.UpdateInput();
+
+        gpio_put(btn0_led_pin, btn0.GetState() == hardware::ButtonState::Pressed);
+        gpio_put(btn1_led_pin, btn1.GetState() == hardware::ButtonState::Pressed);
+
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
