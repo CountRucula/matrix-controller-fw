@@ -21,7 +21,8 @@
 // define hardware
 hardware::Poti poti_left(26, 0);
 hardware::Poti poti_right(27, 1);
-hardware::Button btn(10, hardware::InputLogic::HighActive);
+hardware::Button btn0(14, hardware::InputLogic::HighActive);
+hardware::Button btn1(15, hardware::InputLogic::HighActive);
 hardware::Joystick joystick({
     .left   = hardware::Button(11, hardware::InputLogic::HighActive),
     .right  = hardware::Button(12, hardware::InputLogic::HighActive),
@@ -32,7 +33,7 @@ hardware::Joystick joystick({
 // serial communication
 uint8_t buffer[10*1024];
 com::SerialLink serial_link(Serial);
-Controller controller(serial_link, poti_left, poti_right, btn, joystick);
+Controller controller(serial_link, poti_left, poti_right, btn0, btn1, joystick);
 
 // tasks
 static TaskHandle_t tsk_blinky;
@@ -83,11 +84,8 @@ static void blinky_entry(void *param)
 static void input_entry(void *param)
 {
     // clear events
-    btn.Update();
-    btn.GetEvent();
-
-    joystick.Update();
-    joystick.GetEvent();
+    controller.UpdateInput();
+    controller.ClearEvents();
 
     while (1)
     {

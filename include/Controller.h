@@ -24,9 +24,10 @@ const com::DeviceType_t controller_device_type = 0x01;
 class Controller : public com::Device
 {
 public:
-    Controller(com::SerialLink &seriallink, hardware::Poti &poti_left, hardware::Poti &poti_right, hardware::Button &btn, hardware::Joystick &joystick);
+    Controller(com::SerialLink &seriallink, hardware::Poti &poti_left, hardware::Poti &poti_right, hardware::Button &btn0, hardware::Button &btn1, hardware::Joystick &joystick);
 
     void UpdateInput(void);
+    void ClearEvents(void);
 
 protected:
     void HandleCmd(uint8_t cmd, uint8_t *args, const size_t length) override;
@@ -40,18 +41,17 @@ private:
     void CmdGetEvents(uint8_t* args, const size_t length);
     void CmdCalibratePoti(uint8_t* args, const size_t length);
 
-    void ReplyPotiPos(uint8_t poti, float pos);
-    void ReplyPotiRaw(uint8_t poti, uint16_t raw);
+    void ReplyPotiPos(float pos);
+    void ReplyPotiRaw(uint16_t raw);
     void ReplyBtnState(hardware::ButtonState state);
     void ReplyJoystickState(hardware::JoystickState state);
     void ReplyEvents(event_t* events, const uint16_t nbr_events);
 
     void AddEvent(event_t event);
-    void ClearEvents(void);
 
     hardware::Poti& _poti_left;
     hardware::Poti& _poti_right;
-    hardware::Button& _btn;
+    hardware::Button& _btn0, &_btn1;
     hardware::Joystick& _joystick;
 
     event_t _events[100];

@@ -7,11 +7,12 @@
 #define POTI_LEFT 0
 #define POTI_RIGTH 1
 
-Controller::Controller(com::SerialLink &seriallink, hardware::Poti& poti_left, hardware::Poti& poti_right, hardware::Button& btn, hardware::Joystick& joystick)
+Controller::Controller(com::SerialLink &seriallink, hardware::Poti& poti_left, hardware::Poti& poti_right, hardware::Button& btn0, hardware::Button& btn1, hardware::Joystick& joystick)
     : com::Device(seriallink)
     , _poti_left{poti_left}
     , _poti_right{poti_right}
-    , _btn{btn}
+    , _btn0{btn0}
+    , _btn1{btn1}
     , _joystick{joystick}
 {
     // set device type
@@ -22,14 +23,21 @@ void Controller::UpdateInput(void)
 {
     event_t event;
 
-    _btn.Update();
+    _btn0.Update();
+    _btn1.Update();
     _joystick.Update();
     _poti_left.Update();
     _poti_right.Update();
 
-    event = _btn.GetEvent();
+    event = _btn0.GetEvent();
     if(event.id != EventId::None) {
         event.data.btn.id = 0;
+        AddEvent(event);
+    }
+
+    event = _btn1.GetEvent();
+    if(event.id != EventId::None) {
+        event.data.btn.id = 1;
         AddEvent(event);
     }
 
@@ -135,7 +143,15 @@ void Controller::CmdCalibratePoti(uint8_t* args, const size_t length)
 
 void Controller::CmdGetBtnState(uint8_t* args, const size_t length)
 {
-    ReplyBtnState(_btn.GetState());
+    uint8_t btn_id;
+
+    if(length < sizeof(btn_id))
+        return;
+
+    btn_id = args[0];
+
+    if(btn_id == 0) ReplyBtnState(_btn0.GetState());
+    if(btn_id == 1) ReplyBtnState(_btn1.GetState());
 }
 
 void Controller::CmdGetJoystickState(uint8_t* args, const size_t length)
