@@ -44,9 +44,9 @@ private:
     void ReplyPotiRaw(uint8_t poti, uint16_t raw);
     void ReplyBtnState(hardware::ButtonState state);
     void ReplyJoystickState(hardware::JoystickState state);
-    void ReplyEvents(EventId* events, const uint16_t nbr_events);
+    void ReplyEvents(event_t* events, const uint16_t nbr_events);
 
-    void AddEvent(EventId event);
+    void AddEvent(event_t event);
     void ClearEvents(void);
 
     hardware::Poti& _poti_left;
@@ -54,6 +54,6 @@ private:
     hardware::Button& _btn;
     hardware::Joystick& _joystick;
 
-    EventId _events[100];
+    event_t _events[100];
     size_t _events_len = 0;
 };

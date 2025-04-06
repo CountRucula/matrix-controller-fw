@@ -29,11 +29,11 @@ namespace hardware
         void Update(void);
 
         JoystickState GetState(void);
-        EventId GetEvent(void);
+        event_t GetEvent(void);
 
     private:
         JoystickState _state;
-        EventId _event;
+        EventId _event_id;
 
         JoystickBtns_t _btns;
     };

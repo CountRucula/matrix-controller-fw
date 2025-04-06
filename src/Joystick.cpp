@@ -36,14 +36,7 @@ namespace hardware
             new_state = JoystickState::Middle;
 
         if(new_state != _state) {
-            switch (new_state)
-            {
-            case JoystickState::Middle:     _event = EventId::JOYSTICK_TO_MIDDLE;   break;
-            case JoystickState::Left:       _event = EventId::JOYSTICK_TO_LEFT;     break;
-            case JoystickState::Right:      _event = EventId::JOYSTICK_TO_RIGHT;    break;
-            case JoystickState::Top:        _event = EventId::JOYSTICK_TO_TOP;      break;
-            case JoystickState::Bottom:     _event = EventId::JOYSTICK_TO_BOTTOM;   break;
-            }
+            _event_id = EventId::JOYSTICK_CHANGED;
         }
 
         _state = new_state;
@@ -54,11 +47,19 @@ namespace hardware
         return _state;
     }
 
-    EventId Joystick::GetEvent(void)
+    event_t Joystick::GetEvent(void)
     {
-        EventId event = _event;
+        event_t event = {
+            .id = _event_id,
+            .data = { 
+                .joystick = {
+                    .id = 0, 
+                    .state=static_cast<uint8_t>(_state)
+                }
+            }
+        };
 
-        _event = EventId::None;
+        _event_id = EventId::None;
 
         return event;
     }

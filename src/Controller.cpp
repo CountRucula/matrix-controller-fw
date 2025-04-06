@@ -20,18 +20,22 @@ Controller::Controller(com::SerialLink &seriallink, hardware::Poti& poti_left, h
 
 void Controller::UpdateInput(void)
 {
-    EventId event;
+    event_t event;
 
     _btn.Update();
     _joystick.Update();
 
     event = _btn.GetEvent();
-    if(event != EventId::None)
+    if(event.id != EventId::None) {
+        event.data.btn.id = 0;
         AddEvent(event);
+    }
 
     event = _joystick.GetEvent();
-    if(event != EventId::None)
+    if(event.id != EventId::None) {
+        event.data.joystick.id = 0;
         AddEvent(event);
+}
 }
 
 void Controller::HandleCmd(uint8_t cmd, uint8_t *args, const size_t length)
@@ -136,10 +140,10 @@ void Controller::ReplyPotiPos(uint8_t poti, float pos)
     uint8_t payload[6] = {static_cast<uint8_t>(ControllerCommands::GET_POTI_POS), poti};
     
     uint8_t* pos_ptr = reinterpret_cast<uint8_t*>(&pos);
-    payload[2] = pos_ptr[3];
-    payload[3] = pos_ptr[2];
-    payload[4] = pos_ptr[1];
-    payload[5] = pos_ptr[0];
+    payload[2] = pos_ptr[0];
+    payload[3] = pos_ptr[1];
+    payload[4] = pos_ptr[2];
+    payload[5] = pos_ptr[3];
 
     _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
 }
@@ -162,21 +166,36 @@ void Controller::ReplyJoystickState(hardware::JoystickState state)
     _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
 }
 
-void Controller::ReplyEvents(EventId* events, uint16_t nbr_events)
+void Controller::ReplyEvents(event_t* events, uint16_t nbr_events)
 {
-    size_t length = sizeof(uint8_t) + sizeof(uint16_t) + sizeof(*events) * nbr_events;
     uint8_t payload[sizeof(uint8_t) + sizeof(uint16_t) + sizeof(_events)] = {
         static_cast<uint8_t>(ControllerCommands::GET_EVENTS), 
         reinterpret_cast<uint8_t *>(&nbr_events)[0], 
         reinterpret_cast<uint8_t *>(&nbr_events)[1]
     };
 
-    memcpy(payload+sizeof(uint8_t)+sizeof(uint16_t), events, nbr_events);
+    uint8_t *ptr = payload + sizeof(uint8_t) + sizeof(uint16_t);
+    for(int i = 0; i < nbr_events; i++) {
+        *(ptr++) = static_cast<uint8_t>(events[i].id); 
 
-    _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, length);
+        switch (events[i].id)
+        {
+        case EventId::BTN_PRESSED:
+        case EventId::BTN_RELEASED:
+            *(ptr++) = events[i].data.btn.id; 
+            break;
+
+        case EventId::JOYSTICK_CHANGED:
+            *(ptr++) = events[i].data.joystick.id;
+            *(ptr++) = events[i].data.joystick.state;
+            break;
+        }
+    }
+
+    _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, ptr - payload);
 }
 
-void Controller::AddEvent(EventId event)
+void Controller::AddEvent(event_t event)
 {
     if(_events_len < ARRAY_LEN(_events))
         _events[_events_len++] = event;

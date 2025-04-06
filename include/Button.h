@@ -25,11 +25,11 @@ namespace hardware
         void Update(void);
 
         ButtonState GetState(void);
-        EventId GetEvent(void);
+        event_t GetEvent(void);
 
     private:
         ButtonState _state;
-        EventId _event;
+        EventId _event_id;
         InputLogic _logic;
 
         int _gpio_pin;

@@ -22,7 +22,7 @@ namespace hardware
             new_state = gpio_get(_gpio_pin) ? ButtonState::Released : ButtonState::Pressed;
 
         if(new_state != _state) {
-            _event = (new_state == ButtonState::Pressed) ? EventId::BTN_PRESSED : EventId::BTN_RELEASED;
+            _event_id = (new_state == ButtonState::Pressed) ? EventId::BTN_PRESSED : EventId::BTN_RELEASED;
         }
 
         _state = new_state;
@@ -33,11 +33,18 @@ namespace hardware
         return _state;
     }
 
-    EventId Button::GetEvent(void)
+    event_t Button::GetEvent(void)
     {
-        EventId event = _event;
+        event_t event = {
+            .id = _event_id,
+            .data = { 
+                .btn = {
+                    .id = 0
+                }
+            }
+        };
 
-        _event = EventId::None;
+        _event_id = EventId::None;
 
         return event;
     }
