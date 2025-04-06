@@ -45,7 +45,7 @@ void Controller::UpdateInput(void)
     if(event.id != EventId::None) {
         event.data.joystick.id = 0;
         AddEvent(event);
-}
+    }
 
     event = _poti_left.GetEvent();
     if(event.id != EventId::None) {
@@ -96,7 +96,7 @@ void Controller::CmdGetPotiPos(uint8_t* args, const size_t length)
     else                            return;
 
     // read & reply
-    ReplyPotiPos(poti_nr, poti->Read());
+    ReplyPotiPos(poti->Read());
 }
 
 void Controller::CmdGetPotiRaw(uint8_t* args, const size_t length)
@@ -116,7 +116,7 @@ void Controller::CmdGetPotiRaw(uint8_t* args, const size_t length)
     else                            return;
 
     // read & reply
-    ReplyPotiRaw(poti_nr, poti->Raw());
+    ReplyPotiRaw(poti->Raw());
 }
 
 void Controller::CmdCalibratePoti(uint8_t* args, const size_t length)
@@ -165,22 +165,22 @@ void Controller::CmdGetEvents(uint8_t* args, const size_t length)
     ClearEvents();
 }
 
-void Controller::ReplyPotiPos(uint8_t poti, float pos)
+void Controller::ReplyPotiPos(float pos)
 {
-    uint8_t payload[6] = {static_cast<uint8_t>(ControllerCommands::GET_POTI_POS), poti};
+    uint8_t payload[5] = {static_cast<uint8_t>(ControllerCommands::GET_POTI_POS)};
     
     uint8_t* pos_ptr = reinterpret_cast<uint8_t*>(&pos);
-    payload[2] = pos_ptr[0];
-    payload[3] = pos_ptr[1];
-    payload[4] = pos_ptr[2];
-    payload[5] = pos_ptr[3];
+    payload[1] = pos_ptr[0];
+    payload[2] = pos_ptr[1];
+    payload[3] = pos_ptr[2];
+    payload[4] = pos_ptr[3];
 
     _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
 }
 
-void Controller::ReplyPotiRaw(uint8_t poti, uint16_t raw)
+void Controller::ReplyPotiRaw(uint16_t raw)
 {
-    uint8_t payload[] = {static_cast<uint8_t>(ControllerCommands::GET_POTI_RAW), poti, reinterpret_cast<uint8_t*>(&raw)[0], reinterpret_cast<uint8_t*>(&raw)[1]};
+    uint8_t payload[] = {static_cast<uint8_t>(ControllerCommands::GET_POTI_RAW), reinterpret_cast<uint8_t*>(&raw)[0], reinterpret_cast<uint8_t*>(&raw)[1]};
     _link.SendFrame(com::FrameType::FRAME_RESPONSE, payload, sizeof(payload));
 }
 
